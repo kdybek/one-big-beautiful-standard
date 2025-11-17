@@ -21,6 +21,7 @@ fi
 uv run src/train_obbt.py env:box-moving \
         --agent.agent_name $AGENT \
         --agent.action_sampling softmax \
+	--agent.encoder "impala_small" \
         --exp.name "$AGENT"_tunable_ent_1.38_sampling_"$BOX_NUM"_boxes_6_grid \
         --env.number_of_boxes_min $BOX_NUM \
         --env.number_of_boxes_max $BOX_NUM \
