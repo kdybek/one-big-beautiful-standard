@@ -94,19 +94,30 @@ def get_single_pair_from_every_env(state, next_state, future_state, goal_index, 
 @functools.partial(jax.jit)
 def one_big_beautiful_trajectory(states, future_states, key):
     """"""
+    TRAJ_LEN = 16
     batch_size = states.grid.shape[0]
     episode_length = states.grid.shape[1]
-    how_many_trajectories = future_states.grid.shape[0] // episode_length + 1
+    how_many_trajectories = future_states.grid.shape[0] // TRAJ_LEN + 1
 
     indices = jax.random.choice(key, batch_size, shape=(how_many_trajectories,), replace=False)
     states_trajectories = jax.tree_util.tree_map(lambda x: x[indices], states)
     future_states_trajectories = jax.tree_util.tree_map(lambda x: x[indices], future_states)
 
+    # Take random contiguous regions from trajectories
+    max_start_reg_idx = episode_length - TRAJ_LEN
+    start_region_indices = jax.random.randint(key, shape=(how_many_trajectories,), minval=0, maxval=max_start_reg_idx + 1)
+    offset = jnp.arange(TRAJ_LEN)
+    reg_indices = start_region_indices[:, None] + offset[None, :]
+
+    traj_indices = jnp.arange(how_many_trajectories)
+    states_regions = jax.tree_util.tree_map(lambda x: x[traj_indices[:, None], reg_indices], states_trajectories)
+    future_states_regions = jax.tree_util.tree_map(lambda x: x[traj_indices[:, None], reg_indices], future_states_trajectories)
+
     states_concat = jax.tree_util.tree_map(
-        lambda x: x.reshape(-1, *x.shape[2:])[: batch_size], states_trajectories
+        lambda x: x.reshape(-1, *x.shape[2:])[: batch_size], states_regions
     )  # (batch_size, grid_size, grid_size)
     future_states_concat = jax.tree_util.tree_map(
-        lambda x: x.reshape(-1, *x.shape[2:])[: batch_size], future_states_trajectories
+        lambda x: x.reshape(-1, *x.shape[2:])[: batch_size], future_states_regions
     )  # (batch_size, grid_size, grid_size)
 
     states_concat_action = states_concat.action
