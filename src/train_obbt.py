@@ -110,14 +110,12 @@ def one_big_beautiful_trajectory(states, future_states, key):
     states_trajectories = jax.tree_util.tree_map(lambda x: x[indices], states)
     future_states_trajectories = jax.tree_util.tree_map(
         lambda x: x[indices], future_states)
-    future_states_trajs_with_goal = replace(future_states_trajectories, grid=future_states_trajectories.grid.at[:, episode_length - 1].set(
-        future_states_trajectories.goal[:, episode_length - 1]))
 
     states_concat = jax.tree_util.tree_map(
         lambda x: x.reshape(-1, *x.shape[2:])[: batch_size], states_trajectories
     )  # (batch_size, grid_size, grid_size)
     future_states_concat = jax.tree_util.tree_map(
-        lambda x: x.reshape(-1, *x.shape[2:])[: batch_size], future_states_trajs_with_goal
+        lambda x: x.reshape(-1, *x.shape[2:])[: batch_size], future_states_trajectories
     )  # (batch_size, grid_size, grid_size)
 
     states_concat_action = states_concat.action
@@ -189,6 +187,7 @@ def create_batch(
         "masks": jnp.ones_like(reward.reshape(reward.shape[0], -1).squeeze()),
         "value_goals": value_goals.reshape(value_goals.shape[0], -1),
         "actor_goals": actor_goals.reshape(actor_goals.shape[0], -1),
+        "final_goals": state.goal.reshape(state.goal.shape[0], -1),
     }
     return batch
 
@@ -390,6 +389,7 @@ def train(config: Config):
         "masks": jnp.ones((1,), dtype=jnp.int8),
         "value_goals": dummy_timestep.grid.reshape(1, -1),
         "actor_goals": dummy_timestep.grid.reshape(1, -1),
+        "final_goals": dummy_timestep.goal.reshape(1, -1),
     }
     agent = create_agent(config.agent, example_batch, config.exp.seed)
 

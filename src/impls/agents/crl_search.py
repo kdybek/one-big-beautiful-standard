@@ -49,6 +49,28 @@ class CRLSearchAgent(flax.struct.PyTreeNode):
         )(logits)
         contrastive_loss = jnp.mean(contrastive_loss)
 
+        # ---Goal Contrasting Loss---
+        GOAL_LOSS_WEIGHT = 1000.0
+        q_goal, phi_goal, psi_goal = self.network.select(module_name)(
+            batch['observations'],
+            batch['final_goals'],
+            actions=actions,
+            info=True,
+            params=grad_params,
+        )
+        if len(phi_goal.shape) == 2:  # Non-ensemble.
+            phi_goal = phi_goal[None, ...]
+            psi_goal = psi_goal[None, ...]
+        logits_goal = jnp.einsum('eik,eik->ie', phi_goal, psi_goal) / jnp.sqrt(phi_goal.shape[-1])
+        labels_goal = jnp.zeros((batch_size,))
+        contrastive_loss_goal = jax.vmap(
+            lambda _logits: optax.sigmoid_binary_cross_entropy(logits=_logits, labels=labels_goal),
+            in_axes=-1,
+            out_axes=-1,
+        )(logits_goal)
+        contrastive_loss_goal = jnp.mean(contrastive_loss_goal)
+        # ---------------------------
+
         # Compute additional statistics.
         logits = jnp.mean(logits, axis=-1) # (B, B)
         correct = jnp.argmax(logits, axis=1) == jnp.argmax(I, axis=1)
@@ -74,9 +96,10 @@ class CRLSearchAgent(flax.struct.PyTreeNode):
         entropy = dist.entropy()
         alpha_temp_loss = ((entropy + self.config['target_entropy'])**2).mean()  
 
-        total_loss = contrastive_loss + alpha_temp_loss
+        total_loss = contrastive_loss + alpha_temp_loss + GOAL_LOSS_WEIGHT * contrastive_loss_goal
         return total_loss, {
             'contrastive_loss': contrastive_loss,
+            'contrastive_loss_goal': contrastive_loss_goal,
             'q_mean': q.mean(),
             'q_max': q.max(),
             'q_min': q.min(),
