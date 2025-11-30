@@ -6,6 +6,7 @@ import os
 import wandb
 import dataclasses
 import copy
+from dataclasses import replace
 
 from rb import TrajectoryUniformSamplingQueue, jit_wrap, flatten_batch_obbt
 
@@ -109,13 +110,14 @@ def one_big_beautiful_trajectory(states, future_states, key):
     states_trajectories = jax.tree_util.tree_map(lambda x: x[indices], states)
     future_states_trajectories = jax.tree_util.tree_map(
         lambda x: x[indices], future_states)
-    future_states_trajectories.grid[:, episode_length - 1] = future_states_trajectories.goal[:, episode_length - 1]
+    future_states_trajs_with_goal = replace(future_states_trajectories, grid=future_states_trajectories.grid.at[:, episode_length - 1].set(
+        future_states_trajectories.goal[:, episode_length - 1]))
 
     states_concat = jax.tree_util.tree_map(
         lambda x: x.reshape(-1, *x.shape[2:])[: batch_size], states_trajectories
     )  # (batch_size, grid_size, grid_size)
     future_states_concat = jax.tree_util.tree_map(
-        lambda x: x.reshape(-1, *x.shape[2:])[: batch_size], future_states_trajectories
+        lambda x: x.reshape(-1, *x.shape[2:])[: batch_size], future_states_trajs_with_goal
     )  # (batch_size, grid_size, grid_size)
 
     states_concat_action = states_concat.action
