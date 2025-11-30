@@ -150,6 +150,7 @@ def create_batch(
         "masks": jnp.ones_like(reward.reshape(reward.shape[0], -1).squeeze()),  # Bootstrap always
         "value_goals": value_goals.reshape(value_goals.shape[0], -1),
         "actor_goals": actor_goals.reshape(actor_goals.shape[0], -1),
+        "final_goals": state.goal.reshape(state.goal.shape[0], -1),
     }
     return batch
 
@@ -345,6 +346,7 @@ def train(config: Config):
         "masks": jnp.ones((1,), dtype=jnp.int8),
         "value_goals": dummy_timestep.grid.reshape(1, -1),
         "actor_goals": dummy_timestep.grid.reshape(1, -1),
+        "final_goals": dummy_timestep.goal.reshape(1, -1),
     }
     agent = create_agent(config.agent, example_batch, config.exp.seed)
 
