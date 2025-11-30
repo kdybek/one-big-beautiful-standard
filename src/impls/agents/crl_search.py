@@ -50,7 +50,6 @@ class CRLSearchAgent(flax.struct.PyTreeNode):
         contrastive_loss = jnp.mean(contrastive_loss)
 
         # ---Goal Contrasting Loss---
-        GOAL_LOSS_WEIGHT = 1000.0
         q_goal, phi_goal, psi_goal = self.network.select(module_name)(
             batch['observations'],
             batch['final_goals'],
@@ -63,12 +62,12 @@ class CRLSearchAgent(flax.struct.PyTreeNode):
             psi_goal = psi_goal[None, ...]
         logits_goal = jnp.einsum('eik,eik->ie', phi_goal, psi_goal) / jnp.sqrt(phi_goal.shape[-1])
         labels_goal = jnp.zeros((batch_size,))
-        contrastive_loss_goal = jax.vmap(
+        gloss = jax.vmap(
             lambda _logits: optax.sigmoid_binary_cross_entropy(logits=_logits, labels=labels_goal),
             in_axes=-1,
             out_axes=-1,
         )(logits_goal)
-        contrastive_loss_goal = jnp.mean(contrastive_loss_goal)
+        gloss = jnp.mean(gloss)
         # ---------------------------
 
         # Compute additional statistics.
@@ -95,11 +94,12 @@ class CRLSearchAgent(flax.struct.PyTreeNode):
         dist = distrax.Categorical(logits=qs / jnp.maximum(1e-6, alpha_temp))
         entropy = dist.entropy()
         alpha_temp_loss = ((entropy + self.config['target_entropy'])**2).mean()  
+        gloss_w = self.config['gloss_w']
 
-        total_loss = contrastive_loss + alpha_temp_loss + GOAL_LOSS_WEIGHT * contrastive_loss_goal
+        total_loss = (1 - gloss_w) * (contrastive_loss + alpha_temp_loss) + gloss_w * gloss
         return total_loss, {
             'contrastive_loss': contrastive_loss,
-            'contrastive_loss_goal': contrastive_loss_goal,
+            'gloss': gloss,
             'q_mean': q.mean(),
             'q_max': q.max(),
             'q_min': q.min(),
@@ -314,6 +314,7 @@ def get_config():
             batch_size=256,  # Batch size.
             actor_hidden_dims=(256, 256),  # Actor network hidden dimensions.
             value_hidden_dims=(256, 256),  # Value network hidden dimensions.
+            gloss_w=0.5,  # Weight for final goal contrasting loss.
             latent_dim=64, 
             layer_norm=True,  # Whether to use layer normalization.
             discount=0.99,  # Discount factor.

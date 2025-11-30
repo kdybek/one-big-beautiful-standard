@@ -26,6 +26,7 @@ default_config = ml_collections.FrozenConfigDict(
             batch_size=256,  # Batch size.
             actor_hidden_dims=(256, 256),  # Actor network hidden dimensions.
             value_hidden_dims=(256, 256),  # Value network hidden dimensions.
+            gloss_w=0.5,
             latent_dim=64,
             net_arch='mlp',
             layer_norm=True,  # Whether to use layer normalization.
