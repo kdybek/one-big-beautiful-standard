@@ -29,11 +29,13 @@ uv run src/train.py env:box-moving \
         --exp.gamma 0.99 \
         --env.episode_length 100 \
         --exp.seed $SEED \
+        --exp.run_group regularization \
         --exp.project obbt \
         --exp.entity cl-probing \
         --exp.epochs 50 \
         --exp.gif_every 10 \
         --agent.alpha 0.1 \
+        --agent.regularization 1.0 \
         --exp.max_replay_size 10000 \
         --exp.batch_size 256 \
         --exp.eval_special \

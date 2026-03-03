@@ -42,6 +42,8 @@ class CRLAgent(flax.struct.PyTreeNode):
             phi = phi[None, ...]
             psi = psi[None, ...]
 
+        regularization_loss = self.config['regularization'] * (jnp.mean(phi ** 2) + jnp.mean(psi ** 2))
+
         # Phi and psi have shape [Ensemble, Batch, Embedding]
         if self.config['energy_fn'] == 'dot':
             logits = jnp.einsum('eik,ejk->ije', phi, psi) / jnp.sqrt(phi.shape[-1])
@@ -73,6 +75,7 @@ class CRLAgent(flax.struct.PyTreeNode):
         )(logits)
 
         contrastive_loss = jnp.mean(contrastive_loss)
+        total_loss = contrastive_loss + regularization_loss
 
         logsumexp = jax.nn.logsumexp(logits + 1e-6, axis=1)
         contrastive_loss += self.config['logsumexp_coeff'] * jnp.mean(logsumexp**2)
@@ -83,8 +86,9 @@ class CRLAgent(flax.struct.PyTreeNode):
         logits_pos = jnp.sum(logits * I) / jnp.sum(I)
         logits_neg = jnp.sum(logits * (1 - I)) / jnp.sum(1 - I)
 
-        return contrastive_loss, {
+        return total_loss, {
             'contrastive_loss': contrastive_loss,
+            'regularization_loss': regularization_loss,
             'v_mean': v.mean(),
             'v_max': v.max(),
             'v_min': v.min(),
@@ -353,6 +357,7 @@ def get_config():
             discount=0.99,  # Discount factor.
             actor_loss='awr',  # Actor loss type ('awr' or 'ddpgbc').
             alpha=0.1,  # Temperature in AWR or BC coefficient in DDPG+BC.
+            regularization=0.0,  # Coefficient for the regularization term in the critic loss.
             actor_log_q=True,  # Whether to maximize log Q (True) or Q itself (False) in the actor loss.
             const_std=True,  # Whether to use constant standard deviation for the actor.
             discrete=True,  # Whether the action space is discrete.
