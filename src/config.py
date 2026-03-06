@@ -16,6 +16,7 @@ class ExpConfig:
     project: str = "crl_subgoal"
     mode: str = "online"
     entity: str | None = None
+    run_group: str | None = None
 
     # Replay buffer and batch size and seed
     num_envs: int = 1024

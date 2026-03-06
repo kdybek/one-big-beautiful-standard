@@ -299,6 +299,7 @@ def train(config: Config):
         config=wandb_config,
         entity=config.exp.entity,
         mode=config.exp.mode,
+        group=config.exp.run_group,
     )
     if config.exp.save_dir is None:
         run_directory = os.path.join(ROOT_DIR, "runs", config.exp.name)
