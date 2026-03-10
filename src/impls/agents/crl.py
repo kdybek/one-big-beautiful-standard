@@ -42,7 +42,12 @@ class CRLAgent(flax.struct.PyTreeNode):
             phi = phi[None, ...]
             psi = psi[None, ...]
 
-        regularization_loss = self.config['regularization'] * (jnp.mean(phi ** 2) + jnp.mean(psi ** 2))
+        reg_dim = self.config['regularization_dim']
+        assert abs(reg_dim) <= phi.shape[-1], "Regularization dimension cannot be larger than embedding dimension."
+        if reg_dim < 0:
+            reg_dim = phi.shape[-1] + reg_dim
+
+        regularization_loss = self.config['regularization'] * (jnp.mean(phi[:, :, reg_dim:] ** 2) + jnp.mean(psi[:, :, reg_dim:] ** 2))
 
         # Phi and psi have shape [Ensemble, Batch, Embedding]
         if self.config['energy_fn'] == 'dot':

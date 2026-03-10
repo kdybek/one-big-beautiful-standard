@@ -48,7 +48,8 @@ default_config = ml_collections.FrozenConfigDict(
             use_discounted_mc_rewards=False,  # Whether to use discounted Monte Carlo rewards.
             action_sampling='softmax',
             is_td=False,
-            regularization=0.0, # Regularization coefficient for the latent representation
+            regularization=0.0, # Regularization coefficient for the latent representation.
+            regularization_dim=0,  # Number of dimensions of the space into which we regularize.
         )
     )
 
