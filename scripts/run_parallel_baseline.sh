@@ -12,10 +12,12 @@
 
 SEED=$1
 AGENT=$2
+REGULARIZATION=$3
+REG_DIM=$4
 
 for BOX_NUM in 1 2 3;
 do
-    ./scripts/run_experiment_baseline.sh $SEED $AGENT $BOX_NUM &
+    ./scripts/run_experiment_baseline.sh $SEED $AGENT $BOX_NUM $REGULARIZATION $REG_DIM &
 done
 
 wait

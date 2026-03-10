@@ -1,5 +1,3 @@
-ml ML-bundle/24.06a
-
 unset LD_LIBRARY_PATH
 
 export UV_PROJECT_ENVIRONMENT=$SCRATCH/crl_subgoal/.venv
@@ -10,6 +8,8 @@ export WANDB_API_KEY=$(cat ~/.wandb_key)
 SEED=$1
 AGENT=$2
 BOX_NUM=$3
+REGULARIZATION=$4
+REG_DIM=$5
 
 
 if [ $AGENT = "gcdqn" ]; then
@@ -29,13 +29,14 @@ uv run src/train.py env:box-moving \
         --exp.gamma 0.99 \
         --env.episode_length 100 \
         --exp.seed $SEED \
-        --exp.run_group regularization \
+        --exp.run_group regularization_wazowski \
         --exp.project obbt \
         --exp.entity cl-probing \
         --exp.epochs 50 \
         --exp.gif_every 10 \
         --agent.alpha 0.1 \
-        --agent.regularization 1.0 \
+        --agent.regularization $REGULARIZATION \
+        --agent.regularization_dim $REG_DIM \
         --exp.max_replay_size 10000 \
         --exp.batch_size 256 \
         --exp.eval_special \
