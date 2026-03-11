@@ -1,3 +1,5 @@
+ml ML-bundle/24.06a
+
 unset LD_LIBRARY_PATH
 
 export UV_PROJECT_ENVIRONMENT=$SCRATCH/crl_subgoal/.venv

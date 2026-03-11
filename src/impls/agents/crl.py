@@ -43,7 +43,7 @@ class CRLAgent(flax.struct.PyTreeNode):
             psi = psi[None, ...]
 
         reg_dim = self.config['regularization_dim']
-        assert abs(reg_dim) <= phi.shape[-1], "Regularization dimension cannot be larger than embedding dimension."
+        assert abs(reg_dim) < phi.shape[-1], "Regularization dimension cannot be larger than embedding dimension."
         if reg_dim < 0:
             reg_dim = phi.shape[-1] + reg_dim
 
