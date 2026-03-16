@@ -39,6 +39,14 @@ class CRLSearchAgent(flax.struct.PyTreeNode):
         if len(phi.shape) == 2:  # Non-ensemble.
             phi = phi[None, ...]
             psi = psi[None, ...]
+
+        reg_dim = self.config['regularization_dim']
+        assert abs(reg_dim) < phi.shape[-1], "Regularization dimension cannot be larger than embedding dimension."
+        if reg_dim < 0:
+            reg_dim = phi.shape[-1] + reg_dim
+
+        regularization_loss = self.config['regularization'] * (jnp.mean(phi[:, :, reg_dim:] ** 2) + jnp.mean(psi[:, :, reg_dim:] ** 2))
+
         logits = jnp.einsum('eik,ejk->ije', phi, psi) / jnp.sqrt(phi.shape[-1])
         # logits.shape is (B, B, e) with one term for positive pair and (B - 1) terms for negative pairs in each row.
         I = jnp.eye(batch_size)
@@ -74,9 +82,10 @@ class CRLSearchAgent(flax.struct.PyTreeNode):
         entropy = dist.entropy()
         alpha_temp_loss = ((entropy + self.config['target_entropy'])**2).mean()  
 
-        total_loss = contrastive_loss + alpha_temp_loss
+        total_loss = contrastive_loss + alpha_temp_loss + regularization_loss
         return total_loss, {
             'contrastive_loss': contrastive_loss,
+            'regularization_loss': regularization_loss,
             'q_mean': q.mean(),
             'q_max': q.max(),
             'q_min': q.min(),
